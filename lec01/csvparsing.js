@@ -1,10 +1,3 @@
-# 1-1. 웹 크롤러 소개
-
-# 1-2. csv-parse 패키지로 csv 파싱하기
-
-- npm i csv-parse
-
-```js
 const parse = require("csv-parse/lib/sync");
 const fs = require("fs");
 
@@ -17,16 +10,3 @@ console.log(records);
 records.forEach((e, i) => {
   console.log(`${i}|영화 제목 : ${e[0]} -> URL : ${e[1]} `);
 });
-```
-
-# 1-3. xlsx 패키지로 엑셀 파싱하기
-
-# 1-4. axios-cheerio로 첫 크롤링하기
-
-# 1-5. Promise.all과 for of 문의 차이
-
-# 1-6. 보너스: xlsx 패키지
-
-# 1-7. 보너스: api와의 차이점, 자동화
-
-# 1-8. 보너스: 엑셀에 쓰기

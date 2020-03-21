@@ -190,3 +190,65 @@ console.log(ws["!ref"]); //A1:B11 파싱할 xlsx 범위
 # 1-7. 보너스: api와의 차이점, 자동화
 
 # 1-8. 보너스: 엑셀에 쓰기
+
+```js
+const xlsx = require("xlsx");
+
+function range_add_cell(range, cell) {
+  var rng = xlsx.utils.decode_range(range);
+  var c = typeof cell === "string" ? xlsx.utils.decode_cell(cell) : cell;
+  if (rng.s.r > c.r) rng.s.r = c.r;
+  if (rng.s.c > c.c) rng.s.c = c.c;
+
+  if (rng.e.r < c.r) rng.e.r = c.r;
+  if (rng.e.c < c.c) rng.e.c = c.c;
+  return xlsx.utils.encode_range(rng);
+}
+
+module.exports = function add_to_sheet(sheet, cell, type, raw) {
+  sheet["!ref"] = range_add_cell(sheet["!ref"], cell);
+  sheet[cell] = { t: type, v: raw };
+};
+```
+
+```js
+const xlsx = require("xlsx");
+const axios = require("axios");
+const cheerio = require("cheerio");
+const addToSheet = require("./utils/addToSheet");
+
+const workbook = xlsx.readFile("xlsx/data.xlsx");
+
+const ws = workbook.Sheets["영화목록"];
+
+ws["!ref"] = ws["!ref"]
+  .split(":")
+  .map((e, i) => {
+    if (i === 0) {
+      return "A2";
+    }
+    return e;
+  })
+  .join(":");
+
+const records = xlsx.utils.sheet_to_json(ws, { header: "A" });
+console.log(records); // 문제 -> title 부분도 배열에 들어오기 떄문에   { A: '제목', B: '링크' }, => shift 한번 해준다.
+console.log(ws["!ref"]); //A1:B11 파싱할 xlsx 범위
+
+const crawler = async () => {
+  addToSheet(ws, "C1", "s", "Rate");
+  for (const [i, r] of records.entries()) {
+    const res = await axios.get(r["B"]);
+    if (res.status === 200) {
+      const html = res.data;
+      const $ = cheerio.load(html);
+      //태그를 싹다 무시하고 알맹이만 뽑아온다.
+      const text = $(".score.score_left .star_score").text();
+      console.log(r["A"], text.trim());
+      addToSheet(ws, `C${i + 2}`, "n", text.trim());
+    }
+  }
+  xlsx.writeFile(workbook, "xlsx/result.xlsx");
+};
+crawler();
+```

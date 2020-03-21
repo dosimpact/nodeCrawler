@@ -1,3 +1,8 @@
+/**
+ * fs -> readFileSync, writeFileSync
+ * prase(csv.toString()) <-> Stringify
+ *
+ */
 import fs from "fs";
 import parse from "csv-parse/lib/sync";
 import stringify from "csv-stringify/lib/sync";

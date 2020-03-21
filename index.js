@@ -1,39 +1,43 @@
-const xlsx = require("xlsx");
-const axios = require("axios");
-const cheerio = require("cheerio");
-const addToSheet = require("./utils/addToSheet");
+const parse = require("csv-parse/lib/sync");
+const fs = require("fs");
+const pt = require("puppeteer");
+const stringify = require("csv-stringify/lib/sync");
 
-const workbook = xlsx.readFile("xlsx/data.xlsx");
-
-const ws = workbook.Sheets["영화목록"];
-
-ws["!ref"] = ws["!ref"]
-  .split(":")
-  .map((e, i) => {
-    if (i === 0) {
-      return "A2";
-    }
-    return e;
-  })
-  .join(":");
-
-const records = xlsx.utils.sheet_to_json(ws, { header: "A" });
-console.log(records); // 문제 -> title 부분도 배열에 들어오기 떄문에   { A: '제목', B: '링크' }, => shift 한번 해준다.
-console.log(ws["!ref"]); //A1:B11 파싱할 xlsx 범위
+const csv = fs.readFileSync("csv/data.csv");
+const records = parse(csv.toString());
 
 const crawler = async () => {
-  addToSheet(ws, "C1", "s", "Rate");
-  for (const [i, r] of records.entries()) {
-    const res = await axios.get(r["B"]);
-    if (res.status === 200) {
-      const html = res.data;
-      const $ = cheerio.load(html);
-      //태그를 싹다 무시하고 알맹이만 뽑아온다.
-      const text = $(".score.score_left .star_score").text();
-      console.log(r["A"], text.trim());
-      addToSheet(ws, `C${i + 2}`, "n", text.trim());
-    }
+  const result = [];
+  const brs = await pt.launch({
+    headless: process.env.NODE_ENV === "production"
+  });
+  try {
+    await Promise.all(
+      records.map(async (r, i) => {
+        try {
+          const page = await brs.newPage();
+          await page.goto(r[1]);
+          const scoreEl = await page.$(".score.score_left .star_score");
+          if (scoreEl) {
+            const text = await page.evaluate(tag => tag.textContent, scoreEl);
+            console.log(r[0], "rate", text.trim());
+            //fb 순서를 보장해서 넣을 수 있다.
+            //result.push([r[0], r[1], text.trim()]);
+            result[i] = [r[0], r[1], text.trim()];
+          }
+          await page.close();
+        } catch (e) {
+          console.error(e);
+        }
+      })
+    );
+  } catch (e) {
+    console.error(e);
+  } finally {
+    await brs.close();
+    const str = stringify(result);
+    fs.writeFileSync("csv/result.csv", str);
   }
-  xlsx.writeFile(workbook, "xlsx/result.xlsx");
 };
+
 crawler();

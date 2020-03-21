@@ -13,6 +13,8 @@
     "axios": "^0.19.2",
     "cheerio": "^1.0.0-rc.3",
     "csv-parse": "^4.8.8",
+    "csv-stringify": "^5.3.6",
+    "puppeteer": "^2.1.1",
     "xlsx": "^0.15.6"
   }
 }

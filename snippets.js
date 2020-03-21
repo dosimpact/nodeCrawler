@@ -1,7 +1,9 @@
-let res = "A1:B11";
+let res = "A1:B4:C9";
 
 res = res.split(":");
-console.log(res); //[ 'A1', 'B11' ]
 
-res = res.join("+"); //A1+B11
+console.log(res);
+
+res = res.join("+");
+
 console.log(res);

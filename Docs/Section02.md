@@ -162,6 +162,7 @@ crawler();
 # 2-5. page.evaluate 사용하기
 
 - document 객체를 사용할 수 있다.
+  ?. evaluate 안에서 console.log는 안되는데 ? 설마 크롬에서?
 
 ```js
 const parse = require("csv-parse/lib/sync");
@@ -227,7 +228,7 @@ await page.setUserAgent(
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"
 );
 
----console.log(await page.evaluate("navigator.userAgent"));
+console.log(await page.evaluate("navigator.userAgent"));
 ```
 
 - 3초마다 크롤링 한페이에서 하기
@@ -256,8 +257,11 @@ const crawler = async () => {
       await page.goto(r[1]);
       console.log(await page.evaluate("navigator.userAgent"));
       const text = await page.evaluate(() => {
-        const score = document.querySelector(".score.score_left .star_score");
-        return score.textContent.trim();
+        const score = document.querySelector(".score.score_left");
+        console.log(score);
+        const score_ = score.querySelector(".star_score");
+        console.log(score_);
+        return score_.textContent.trim();
       });
       console.log(text);
       await page.waitFor(3000);

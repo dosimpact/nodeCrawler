@@ -1,25 +1,45 @@
-import fs from "fs";
-import parse from "csv-parse/lib/sync";
-import stringify from "csv-stringify";
-
-import axios from "axios";
-import cheerio from "cheerio";
+const parse = require("csv-parse/lib/sync");
+const fs = require("fs");
+const pt = require("puppeteer");
+const stringify = require("csv-stringify/lib/sync");
 
 const csv = fs.readFileSync("csv/data.csv");
-const rows = parse(csv.toString("utf-8"));
+const records = parse(csv.toString());
 
 const crawler = async () => {
-  await Promise.all(
-    rows.map(async row => {
-      const res = await axios.get(row[1]);
-      if (res.status === 200) {
-        const html = res.data;
-        const $ = cheerio.load(html);
-        const text = $(".score.score_left .star_score").text();
-        console.log(text.trim());
-      }
-    })
-  );
+  const result = [];
+  const brs = await pt.launch({
+    headless: process.env.NODE_ENV === "production"
+  });
+  try {
+    await Promise.all(
+      records.map(async (r, i) => {
+        try {
+          const page = await brs.newPage();
+          await page.goto(r[1]);
+          const text = await page.evaluate(() => {
+            const score = document.querySelector(
+              ".score.score_left .star_score"
+            );
+            if (score) {
+              //console.log(score);
+              return score.textContent;
+            }
+          });
+          console.log(text.trim());
+          await page.close();
+        } catch (e) {
+          console.error(e);
+        }
+      })
+    );
+  } catch (e) {
+    console.error(e);
+  } finally {
+    await brs.close();
+    const str = stringify(result);
+    //fs.writeFileSync("csv/result.csv", str);
+  }
 };
 
 crawler();

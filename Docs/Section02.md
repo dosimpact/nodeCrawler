@@ -161,4 +161,61 @@ crawler();
 
 # 2-5. page.evaluate 사용하기
 
+- document 객체를 사용할 수 있다.
+
+```js
+const parse = require("csv-parse/lib/sync");
+const fs = require("fs");
+const pt = require("puppeteer");
+const stringify = require("csv-stringify/lib/sync");
+
+const csv = fs.readFileSync("csv/data.csv");
+const records = parse(csv.toString());
+
+const crawler = async () => {
+  const result = [];
+  const brs = await pt.launch({
+    headless: process.env.NODE_ENV === "production"
+  });
+  try {
+    await Promise.all(
+      records.map(async (r, i) => {
+        try {
+          const page = await brs.newPage();
+          await page.goto(r[1]);
+          const text = await page.evaluate(() => {
+            const score = document.querySelector(
+              ".score.score_left .star_score"
+            );
+            if (score) {
+              //console.log(score);
+              return score.textContent;
+            }
+          });
+          console.log(text.trim());
+          await page.close();
+        } catch (e) {
+          console.error(e);
+        }
+      })
+    );
+  } catch (e) {
+    console.error(e);
+  } finally {
+    await brs.close();
+    const str = stringify(result);
+    //fs.writeFileSync("csv/result.csv", str);
+  }
+};
+
+crawler();
+```
+
+[https://try-puppeteer.appspot.com/](https://try-puppeteer.appspot.com/)
+
+- 이미지 빼고 돌리기
+- 스크릿샷
+- 풀 스크린샷
+- pdf 변환
+
 # 2-6. userAgent와 한 탭으로 크롤링

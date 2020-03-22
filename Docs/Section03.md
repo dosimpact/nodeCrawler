@@ -113,6 +113,18 @@ await page.screenshot({ path: `screenshot/${r[0]}.png`, fullPage: true });
 //화면의 좌표를 정확하게 알면, clip이라는 기능도 사용
 ```
 
+- page PDF 따기
+
+```js
+await page.pdf({ path: `pdf/${r[0]}.pdf`, format: "Letter" });
+
+await page.pdf({
+  path: `pdf/${r[0]}.pdf`,
+  format: "A4",
+  printBackground: true
+});
+```
+
 # 3-4. 보너스: querySelector과 CSS 선택자
 
 - \$로 다음을 줄여 쓸 수 있다.
@@ -124,6 +136,4 @@ $$ === docuemnt.querySelectorAll()
 
 # 3-5. 보너스: CSS 선택자 조합하기
 
-```
-
-```
+- 연습!

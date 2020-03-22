@@ -9,7 +9,7 @@ const records = parse(csv.toString());
 
 const crawler = async () => {
   const brs = await pt.launch({
-    headless: process.env.NODE_ENV === "production",
+    headless: true,
     args: ["--Window-size=1920,1080"]
   });
   const result = [];
@@ -20,7 +20,7 @@ const crawler = async () => {
     );
     await page.setViewport({ width: 1920, height: 1080 });
     for (const [i, r] of records.entries()) {
-      await page.goto(r[1]);
+      await page.goto(r[1], { waitUntil: "networkidle2" });
 
       const { rate, img } = await page.evaluate(() => {
         const scoreEl = document.querySelector(".score.score_left .star_score");
@@ -34,7 +34,11 @@ const crawler = async () => {
         }
       });
       console.log(rate, img);
-      await page.screenshot({ path: `screenshot/${r[0]}.png`, fullPage: true });
+      await page.pdf({
+        path: `pdf/${r[0]}.pdf`,
+        format: "A4",
+        printBackground: true
+      });
     }
   } catch (e) {
     console.error(e);
@@ -55,6 +59,11 @@ const setStorage = () => {
   fs.readdir("screenshot", e => {
     if (e) {
       fs.mkdirSync("screenshot");
+    }
+  });
+  fs.readdir("pdf", e => {
+    if (e) {
+      fs.mkdirSync("pdf");
     }
   });
 };

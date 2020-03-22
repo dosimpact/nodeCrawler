@@ -87,7 +87,40 @@ if (img) {
 
 # 3-3. 브라우저 사이즈 조절과 스크린샷
 
+- 브라우저 크기 설정 && 뷰 포트 크기 설정
+
+```js
+const brs = await pt.launch({
+  headless: process.env.NODE_ENV === "production",
+  args: ["--Window-size=1920,1080"]
+});
+await page.setViewport({ width: 1920, height: 1080 });
+```
+
+- page 스크린샷
+
+```js
+const buffer = await page.screenshot();
+fs.writeFileSync("screenshot/", buffer);
+
+//간단하게 ~
+
+await page.screenshot({ path: `screenshot/${r[0]}.png` });
+
+// 스크롤 포함 전체 화면
+await page.screenshot({ path: `screenshot/${r[0]}.png`, fullPage: true });
+
+//화면의 좌표를 정확하게 알면, clip이라는 기능도 사용
+```
+
 # 3-4. 보너스: querySelector과 CSS 선택자
+
+- \$로 다음을 줄여 쓸 수 있다.
+
+```
+$ === document.querySelector()
+$$ === docuemnt.querySelectorAll()
+```
 
 # 3-5. 보너스: CSS 선택자 조합하기
 

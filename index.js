@@ -9,7 +9,8 @@ const records = parse(csv.toString());
 
 const crawler = async () => {
   const brs = await pt.launch({
-    headless: process.env.NODE_ENV === "production"
+    headless: process.env.NODE_ENV === "production",
+    args: ["--Window-size=1920,1080"]
   });
   const result = [];
   try {
@@ -17,7 +18,7 @@ const crawler = async () => {
     await page.setUserAgent(
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"
     );
-
+    await page.setViewport({ width: 1920, height: 1080 });
     for (const [i, r] of records.entries()) {
       await page.goto(r[1]);
 
@@ -33,13 +34,7 @@ const crawler = async () => {
         }
       });
       console.log(rate, img);
-      if (img) {
-        const imgResult = await axios.get(img.replace(/\?.*$/, ""), {
-          responseType: "arraybuffer"
-        });
-        fs.writeFileSync(`poster/${r[0]}.jpg`, imgResult.data);
-      }
-      await page.waitFor(3000);
+      await page.screenshot({ path: `screenshot/${r[0]}.png`, fullPage: true });
     }
   } catch (e) {
     console.error(e);
@@ -55,6 +50,11 @@ const setStorage = () => {
     if (e) {
       console.log("make dir ./poster");
       fs.mkdirSync("poster");
+    }
+  });
+  fs.readdir("screenshot", e => {
+    if (e) {
+      fs.mkdirSync("screenshot");
     }
   });
 };

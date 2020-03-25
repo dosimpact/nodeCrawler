@@ -1,72 +1,20 @@
-const parse = require("csv-parse/lib/sync");
-const fs = require("fs");
-const pt = require("puppeteer");
-const stringify = require("csv-stringify/lib/sync");
-const axios = require("axios");
-
-const csv = fs.readFileSync("csv/data.csv");
-const records = parse(csv.toString());
-
-const crawler = async () => {
-  const brs = await pt.launch({
-    headless: true,
+import pt from "puppeteer";
+const start = async () => {
+  const browser = await pt.launch({
+    headless: false,
     args: ["--Window-size=1920,1080"]
   });
-  const result = [];
-  try {
-    const page = await brs.newPage();
-    await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36"
-    );
-    await page.setViewport({ width: 1920, height: 1080 });
-    for (const [i, r] of records.entries()) {
-      await page.goto(r[1], { waitUntil: "networkidle2" });
+  const page = await browser.newPage();
+  await page.setViewport({ width: 1920, height: 1080 });
 
-      const { rate, img } = await page.evaluate(() => {
-        const scoreEl = document.querySelector(".score.score_left .star_score");
-        const imgEl = document.querySelector(
-          "#content > div.article > div.mv_info_area > div.poster > a > img"
-        );
-        if (scoreEl && imgEl) {
-          return { rate: scoreEl.textContent.trim(), img: imgEl.src };
-        } else {
-          return { rate: 0, img: null };
-        }
-      });
-      console.log(rate, img);
-      await page.pdf({
-        path: `pdf/${r[0]}.pdf`,
-        format: "A4",
-        printBackground: true
-      });
-    }
-  } catch (e) {
-    console.error(e);
-  } finally {
-    await brs.close();
-    const str = stringify(result);
-    //fs.writeFileSync("csv/result.csv", str);
-  }
+  await page.goto("https://movie.naver.com/movie/bi/mi/basic.nhn?code=72363");
+  await page.setRequestInterception(true);
+  page.on("request", request => {
+    if (request.resourceType() === "image") request.abort();
+    else request.continue();
+  });
+  await page.waitFor(5000);
+  await browser.close();
 };
 
-const setStorage = () => {
-  fs.readdir("poster", e => {
-    if (e) {
-      console.log("make dir ./poster");
-      fs.mkdirSync("poster");
-    }
-  });
-  fs.readdir("screenshot", e => {
-    if (e) {
-      fs.mkdirSync("screenshot");
-    }
-  });
-  fs.readdir("pdf", e => {
-    if (e) {
-      fs.mkdirSync("pdf");
-    }
-  });
-};
-
-setStorage();
-crawler();
+start();

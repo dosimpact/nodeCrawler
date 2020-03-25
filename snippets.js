@@ -1,9 +1,40 @@
-let res = "A1:B4:C9";
+const puppeteer = require("puppeteer"); // postman으로 요청 보냈을 때 이미지 로딩 상태 확인하기
 
-res = res.split(":");
+const crawler = async () => {
+  try {
+    const browser = await puppeteer.launch({ headless: false });
+    const page = await browser.newPage();
+    await page.goto("https://unsplash.com");
+    let result = [];
+    while (result.length <= 30) {
+      const srcs = await page.evaluate(() => {
+        window.scrollTo(0, 0);
+        let imgs = [];
+        const imgEls = document.querySelectorAll(".nDTlD"); // 사이트 바뀌었을 때 클래스 적절히 바꾸기
+        if (imgEls.length) {
+          imgEls.forEach(v => {
+            let img = v.querySelector("img._2zEKz"); // 사이트 바뀌었을 때 클래스 적절히 바꾸기
+            if (img && img.src) {
+              imgs.push(img.src);
+            }
+            v.parentElement.removeChild(v);
+          });
+        }
+        window.scrollBy(0, 100);
+        setTimeout(() => {
+          window.scrollBy(0, 200);
+        }, 500);
+        return imgs;
+      });
+      result = result.concat(srcs);
+      await page.waitForSelector("figure");
+    }
+    console.log(result);
+    await page.close();
+    await browser.close();
+  } catch (e) {
+    console.error(e);
+  }
+};
 
-console.log(res);
-
-res = res.join("+");
-
-console.log(res);
+crawler();

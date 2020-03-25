@@ -100,6 +100,23 @@ npm i cheerio //HTML 파싱
 
 # 1-5. Promise.all과 for of 문의 차이
 
+- axios로 HTML 가져오기
+
+```js
+const res = await axios.get(r["링크"]);
+if (res.status === 200) {
+  const html = res.data;
+}
+```
+
+- cheerio로 HTML 파싱하기
+
+```js
+const $ = cheerio.load(html);
+const text = $(".score.score_left .star_score").text();
+console.log(r["제목"], text.trim());
+```
+
 ```js
 const xlsx = require("xlsx");
 const axios = require("axios");

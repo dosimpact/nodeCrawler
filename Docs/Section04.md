@@ -127,16 +127,12 @@ crwaler();
 
 # 4-5. 크롤링 결과를 파일로 만들기
 
-# 4-6. 보너스: 퍼펫티어 Q&A
-
-# 4-7. 보너스: 태그 바뀌었을 때 대처법 & copy selector
-
 ```js
-const fs = require("fs");
-const pt = require("puppeteer");
-const axios = require("axios");
+import pt from "puppeteer";
+import axios from "axios";
+import fs from "fs";
 
-const crawler = async () => {
+const crwaler = async () => {
   try {
     const browser = await pt.launch({
       headless: false,
@@ -144,84 +140,69 @@ const crawler = async () => {
     });
     const page = await browser.newPage();
     page.setViewport({ width: 1920, height: 1080 });
-    await page.goto("https://unsplash.com", { waitUntil: "networkidle2" });
-    const imgURLS = [];
+    await page.goto("https://unsplash.com/", { waitUntil: "networkidle2" });
 
-    setInterval(async () => {
-      for (let i = 0; i < 10; i++) {
-        await page.evaluate(() => {
-          window.scrollBy(0, 300);
-        });
-        page.waitFor(100);
-      }
-    }, 5000);
+    //page 가 close 될때 reset 해주어 한다. 안그러면 leak
+    const infiniteScroll = async () => {
+      await page.evaluate(() => {
+        window.scrollBy(0, -100);
+        window.scrollBy(0, 1000);
+      });
+    };
+    const infiniteScrollEvent = setInterval(infiniteScroll, 100);
 
-    while (true) {
-      await page.waitFor(5000);
-      try {
-        //const result =
-        await page.evaluate(async () => {
-          let imgsURL = [];
-          const containerEl = document.querySelector(
-            "#app > div > div:nth-child(5) > div._2HheS._2sCnE.PrOBO._1CR66 > div:nth-child(1) > div > div"
-          );
-          let imageContainerEls = containerEl.querySelectorAll(
-            "div.nDTlD img._2zEKz"
-          );
-          console.log("imageContainerEls LEN : ", imageContainerEls.length);
-          // if (imageContainerEls.length) {
-          //   imageContainerEls.forEach(async e => {
-          //     const src = e.src;
-          //     if (src) {
-          //       e.parentElement.removeChild(e);
-          //       imgsURL.push(src);
-          //     }
-          //   });
-          // }
-          //return imgsURL;
-        });
-        imgURLS.push(...result);
-        console.log(result);
-      } catch (error) {
-        console.error(error);
-      }
+    let imgSrcs = [];
+    while (imgSrcs.length <= 30) {
+      await page.waitForSelector(".nDTlD");
+      const res = await page.evaluate(() => {
+        const imgSrcs = [];
+        let containerEls = document.querySelectorAll(".nDTlD");
+        try {
+          containerEls.forEach(E => {
+            const imgEl = E.querySelector("img._2zEKz");
+            if (imgEl) {
+              const imgSrc = imgEl.getAttribute("src");
+              if (imgSrc) {
+                imgSrcs.push(imgSrc);
+                E.parentElement.removeChild(E);
+              }
+            }
+          });
+        } catch (error) {}
+        return imgSrcs;
+      });
+      imgSrcs = imgSrcs.concat(res);
+      console.log(" ✅ crwaling... ", imgSrcs.length);
     }
-    // while (true) {
-    //   if (imgURLS.length >= 100) {
-    //     break;
-    //   }
-    //   const result = await page.evaluate(() => {
-    //     let imgsURL = [];
-    //     window.scrollBy(0, 5000);
-    //     const containerEl = document.querySelector(
-    //       "#app > div > div:nth-child(5) > div._2HheS._2sCnE.PrOBO._1CR66 > div:nth-child(1) > div > div"
-    //     );
-    //     const imageContainerEls = containerEl.querySelectorAll(".nDTlD");
-    //     console.log("imageContainerEls LEN : ", imageContainerEls.length);
-    //     imageContainerEls.forEach(e => {
-    //       const ImgEl = e.querySelector("img._2zEKz");
-    //       console.log(ImgEl.src);
-    //       imgsURL.push(ImgEl.src);
-    //     });
-    //     return imgsURL;
-    //   });
-    //   await page.evaluate(() => {
-    //     for (let i = 0; i < 100; i++) {
-    //       window.scrollBy(0, 10000);
-    //     }
-    //     page.waitFor(100);
-    //   });
-    //   await page.waitFor(3000);
-    //   imgURLS.push(...result);
-    // }
-    console.log(imgURLS);
-    //await page.close();
-    //await browser.close();
+    console.log(imgSrcs);
+    console.log(" ✅ Successfull!! ", imgSrcs.length);
+    clearInterval(infiniteScrollEvent);
+    await page.close();
+    await browser.close();
+
+    fs.readdir("imgs", e => {
+      if (e) {
+        fs.mkdirSync("imgs");
+      }
+    });
+    await Promise.all(
+      imgSrcs.map(async src => {
+        const res = await axios.get(src.replace(/\?.*$/, ""), {
+          responseType: "arraybuffer"
+        });
+        if (res.data) {
+          fs.writeFileSync(`imgs/${Date.now()}.jpeg`, res.data);
+        }
+      })
+    );
   } catch (error) {
     console.error(error);
   }
 };
 
-crawler();
-//
+crwaler();
 ```
+
+# 4-6. 보너스: 퍼펫티어 Q&A
+
+# 4-7. 보너스: 태그 바뀌었을 때 대처법 & copy selector

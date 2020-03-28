@@ -22,7 +22,7 @@ const crwaler = async () => {
     const infiniteScrollEvent = setInterval(infiniteScroll, 100);
 
     let imgSrcs = [];
-    while (imgSrcs.length <= 300) {
+    while (imgSrcs.length <= 30) {
       await page.waitForSelector(".nDTlD");
       const res = await page.evaluate(() => {
         const imgSrcs = [];
@@ -49,6 +49,22 @@ const crwaler = async () => {
     clearInterval(infiniteScrollEvent);
     await page.close();
     await browser.close();
+
+    fs.readdir("imgs", e => {
+      if (e) {
+        fs.mkdirSync("imgs");
+      }
+    });
+    await Promise.all(
+      imgSrcs.map(async src => {
+        const res = await axios.get(src.replace(/\?.*$/, ""), {
+          responseType: "arraybuffer"
+        });
+        if (res.data) {
+          fs.writeFileSync(`imgs/${Date.now()}.jpeg`, res.data);
+        }
+      })
+    );
   } catch (error) {
     console.error(error);
   }

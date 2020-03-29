@@ -1,73 +1,89 @@
-import pt from "puppeteer";
-import axios from "axios";
+import "./env";
 import fs from "fs";
+import axios from "axios";
+import pt from "puppeteer";
 
-const crwaler = async () => {
+// splash 크롤링
+
+console.log(process.env.IMG_LIMIT);
+const IP = "58.233.211.104:8080";
+
+const crawling = async () => {
   try {
     const browser = await pt.launch({
       headless: false,
-      args: ["--Window-size=1920.1080"]
+      args: ["--window-size=1920,1080"]
     });
     const page = await browser.newPage();
     page.setViewport({ width: 1920, height: 1080 });
-    await page.goto("https://unsplash.com/", { waitUntil: "networkidle2" });
-
-    //page 가 close 될때 reset 해주어 한다. 안그러면 leak
+    await page.goto("https://unsplash.com/");
     const infiniteScroll = async () => {
-      await page.evaluate(() => {
+      page.evaluate(() => {
         window.scrollBy(0, -100);
         window.scrollBy(0, 1000);
       });
     };
-    const infiniteScrollEvent = setInterval(infiniteScroll, 100);
+    const EventInfiniteScroll = setInterval(infiniteScroll, 1000);
 
     let imgSrcs = [];
-    while (imgSrcs.length <= 30) {
+
+    while (imgSrcs.length < process.env.IMG_LIMIT) {
       await page.waitForSelector(".nDTlD");
       const res = await page.evaluate(() => {
-        const imgSrcs = [];
-        let containerEls = document.querySelectorAll(".nDTlD");
-        try {
-          containerEls.forEach(E => {
-            const imgEl = E.querySelector("img._2zEKz");
-            if (imgEl) {
-              const imgSrc = imgEl.getAttribute("src");
-              if (imgSrc) {
-                imgSrcs.push(imgSrc);
-                E.parentElement.removeChild(E);
-              }
+        const imgSrcsTmp = [];
+        const containerEls = document.querySelectorAll(".nDTlD");
+        containerEls.forEach(El => {
+          const imgEl = El.querySelector("img._2zEKz");
+          if (imgEl) {
+            const src = imgEl.getAttribute("src");
+            if (src) {
+              imgSrcsTmp.push(src);
+              El.parentElement.removeChild(El);
             }
-          });
-        } catch (error) {}
-        return imgSrcs;
+          }
+        });
+        return imgSrcsTmp;
       });
       imgSrcs = imgSrcs.concat(res);
-      console.log(" ✅ crwaling... ", imgSrcs.length);
+      console.log(
+        `✅ crawling... ${imgSrcs.length} / ${process.env.IMG_LIMIT}`
+      );
     }
     console.log(imgSrcs);
-    console.log(" ✅ Successfull!! ", imgSrcs.length);
-    clearInterval(infiniteScrollEvent);
-    await page.close();
-    await browser.close();
+    console.log(`✅ crawling complete !! .. ${imgSrcs.length}`);
 
-    fs.readdir("imgs", e => {
+    clearInterval(EventInfiniteScroll);
+
+    console.log(`✅ fetching img... `);
+    fs.readdirSync("imgs", e => {
       if (e) {
         fs.mkdirSync("imgs");
       }
     });
+
     await Promise.all(
       imgSrcs.map(async src => {
-        const res = await axios.get(src.replace(/\?.*$/, ""), {
-          responseType: "arraybuffer"
-        });
-        if (res.data) {
-          fs.writeFileSync(`imgs/${Date.now()}.jpeg`, res.data);
+        try {
+          const srcParsed = src.slice(0, src.indexOf("?"));
+          console.log(`✅ ${srcParsed} fetching ... `);
+          const res = await axios.get(srcParsed, {
+            responseType: "arraybuffer"
+          });
+          if (res) {
+            fs.writeFileSync(`imgs/${Date.now()}.jpeg`, res.data);
+          }
+        } catch (error) {
+          console.log(`❌ fetching ${error}`);
         }
       })
     );
+    await page.close();
+    await browser.close();
   } catch (error) {
-    console.error(error);
+    console.log(`❌ ${error}`);
+  } finally {
   }
 };
 
-crwaler();
+crawling();
+// axios 이미지 다운ㄷ

@@ -118,6 +118,17 @@ await page.evaluate(() => {
 
 # 5-5. waitForResponse
 
+- 서버 리스폰을 기다리는 코드인데, 잘 모르겠다. 아직은..
+
+```js
+await page.waitForResponse(res => {
+  if (res.url().includes("login_attempt")) {
+    console.log(res, res.url());
+  }
+  return res.url().includes("login_attempt");
+});
+```
+
 # 5-6. 마우스 조작하기
 
 # 5-7. focus와 대문자 입력하기

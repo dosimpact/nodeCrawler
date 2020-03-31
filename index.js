@@ -1,89 +1,35 @@
 import "./env";
-import fs from "fs";
-import axios from "axios";
 import pt from "puppeteer";
 
-// splash 크롤링
-
-console.log(process.env.IMG_LIMIT);
-const IP = "58.233.211.104:8080";
-
-const crawling = async () => {
+const crawler = async () => {
   try {
-    const browser = await pt.launch({
+    const brwoser = await pt.launch({
       headless: false,
       args: ["--window-size=1920,1080"]
     });
-    const page = await browser.newPage();
-    page.setViewport({ width: 1920, height: 1080 });
-    await page.goto("https://unsplash.com/");
-    const infiniteScroll = async () => {
-      page.evaluate(() => {
-        window.scrollBy(0, -100);
-        window.scrollBy(0, 1000);
-      });
-    };
-    const EventInfiniteScroll = setInterval(infiniteScroll, 1000);
+    const page = await brwoser.newPage();
+    page.setViewport({ width: 1080, height: 1080 });
+    await page.goto("https://www.facebook.com/");
+    await page.waitFor(5000);
 
-    let imgSrcs = [];
+    await page.waitForSelector("#email"); // so Easy
+    await page.type("#email", process.env.ID); // 타이핑 효과
+    await page.type("#pass", process.env.PW);
+    await page.waitFor(3000);
+    await page.hover("#loginbutton"); // on호버
+    await page.click("#loginbutton"); // on클릭
 
-    while (imgSrcs.length < process.env.IMG_LIMIT) {
-      await page.waitForSelector(".nDTlD");
-      const res = await page.evaluate(() => {
-        const imgSrcsTmp = [];
-        const containerEls = document.querySelectorAll(".nDTlD");
-        containerEls.forEach(El => {
-          const imgEl = El.querySelector("img._2zEKz");
-          if (imgEl) {
-            const src = imgEl.getAttribute("src");
-            if (src) {
-              imgSrcsTmp.push(src);
-              El.parentElement.removeChild(El);
-            }
-          }
-        });
-        return imgSrcsTmp;
-      });
-      imgSrcs = imgSrcs.concat(res);
-      console.log(
-        `✅ crawling... ${imgSrcs.length} / ${process.env.IMG_LIMIT}`
-      );
-    }
-    console.log(imgSrcs);
-    console.log(`✅ crawling complete !! .. ${imgSrcs.length}`);
+    await page.waitFor(3000);
+    await page.keyboard.press("Escape");
+    await page.click("HTML");
 
-    clearInterval(EventInfiniteScroll);
-
-    console.log(`✅ fetching img... `);
-    fs.readdirSync("imgs", e => {
-      if (e) {
-        fs.mkdirSync("imgs");
-      }
-    });
-
-    await Promise.all(
-      imgSrcs.map(async src => {
-        try {
-          const srcParsed = src.slice(0, src.indexOf("?"));
-          console.log(`✅ ${srcParsed} fetching ... `);
-          const res = await axios.get(srcParsed, {
-            responseType: "arraybuffer"
-          });
-          if (res) {
-            fs.writeFileSync(`imgs/${Date.now()}.jpeg`, res.data);
-          }
-        } catch (error) {
-          console.log(`❌ fetching ${error}`);
-        }
-      })
-    );
-    await page.close();
-    await browser.close();
+    const props = { id: process.env.ID, pw: process.env.PW };
+    await page.evaluate(props => {
+      console.log(props);
+    }, props);
   } catch (error) {
-    console.log(`❌ ${error}`);
-  } finally {
+    console.log(error);
   }
 };
 
-crawling();
-// axios 이미지 다운ㄷ
+crawler();
